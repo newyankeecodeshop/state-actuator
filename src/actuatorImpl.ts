@@ -48,9 +48,10 @@ class ActuatorImpl<Model, Msg extends AnyMsg> implements StateActuator<Model, Ms
       const nextModel = this.processMessage(model, msg);
 
       if (nextModel === undefined) {
-        // TODO: Need to pass on message to parent actuator
+        // Need to pass on message to any parent actuator
         this.unhandledUpdater?.(msg);
       } else if (nextModel !== model) {
+        // Return new values only when the model is updated
         yield (model = nextModel);
       }
     }

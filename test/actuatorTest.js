@@ -1,5 +1,5 @@
 const assert = require("assert");
-const { StateActuator } = require("../lib/actuator");
+const { StateActuator } = require("../index");
 
 function delay(value) {
   return new Promise((resolve) => setTimeout(resolve, 10, value));
@@ -13,16 +13,16 @@ describe("StateActuator", function () {
     update(model, msg) {
       switch (msg.id) {
         case "AddData":
-          return { data: model.data.concat(msg.value), changeCount: ++model.changeCount };
+          return { data: model.data.concat(msg.value), changeCount: model.changeCount + 1 };
 
         case "ClearData":
-          return { data: [], changeCount: ++model.changeCount };
+          return { data: [], changeCount: model.changeCount + 1 };
 
         case "LoadData":
           return { model, message: delay({ id: "LoadDataSuccess", data: ["a", "b", "c"] }) };
 
         case "LoadDataSuccess":
-          return { data: msg.data, changeCount: ++model.changeCount };
+          return { data: msg.data, changeCount: model.changeCount + 1 };
       }
     },
   };
@@ -42,15 +42,15 @@ describe("StateActuator", function () {
       actuator.updater({ id: "ClearData" });
       actuator.updater({ id: "AddData", value: "Rhode Island" });
 
-      assert.notStrictEqual(await iterator.next(), {
+      assert.deepStrictEqual(await iterator.next(), {
         done: false,
         value: { data: ["init", "New York"], changeCount: 1 },
       });
-      assert.notStrictEqual(await iterator.next(), {
+      assert.deepStrictEqual(await iterator.next(), {
         done: false,
         value: { data: [], changeCount: 2 },
       });
-      assert.notStrictEqual(await iterator.next(), {
+      assert.deepStrictEqual(await iterator.next(), {
         done: false,
         value: { data: ["Rhode Island"], changeCount: 3 },
       });
@@ -65,11 +65,11 @@ describe("StateActuator", function () {
       actuator.updater({ id: "AddData", value: "New York" });
       actuator.updater({ id: "LoadData" });
 
-      assert.notStrictEqual(await iterator.next(), {
+      assert.deepStrictEqual(await iterator.next(), {
         done: false,
         value: { data: ["init", "New York"], changeCount: 1 },
       });
-      assert.notStrictEqual(await iterator.next(), {
+      assert.deepStrictEqual(await iterator.next(), {
         done: false,
         value: { data: ["a", "b", "c"], changeCount: 2 },
       });

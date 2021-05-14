@@ -9,7 +9,7 @@ import type { AnyMsg, Updater } from "../actuator";
 const UpdaterContext = createContext<Updater<AnyMsg>>(nullUpdater);
 
 function nullUpdater(msg: AnyMsg) {
-  throw new Error(`Message "${String(msg.id)}" not handled by any updater!`);
+  throw new Error(`Message "${msg.id}" not handled by any updater!`);
 }
 
 /**

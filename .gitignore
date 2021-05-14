@@ -1,4 +1,5 @@
-build/
+# Compiled source
+lib/
 
 # Logs
 logs

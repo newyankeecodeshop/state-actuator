@@ -1,5 +1,5 @@
 import * as React from "react";
-import { AnyMsg, StateActuator, Updater } from "../actuator";
+import { AnyMsg, StateActuator, Stateful, Updater } from "../actuator";
 import { UpdaterContext } from "./context";
 
 /**
@@ -18,50 +18,54 @@ interface IStateful<Model, Msg extends AnyMsg> {
  */
 export function withActuator<Model, Msg extends AnyMsg>(
   Component: React.ComponentType<IStateful<Model, Msg>>,
-  stateActuator: StateActuator<Model, Msg>
+  state: Stateful<Model, Msg>
 ) {
   class WithActuator extends React.Component<{}, { model: Model }> {
     static contextType = UpdaterContext;
 
     declare context: React.ContextType<typeof UpdaterContext>;
 
-    private stateIt: AsyncIterableIterator<Model>;
-    private stateUpdater: Updater<AnyMsg>;
+    private stateIter: AsyncIterableIterator<Model>;
+    private stateActuator: StateActuator<Model, Msg>;
 
     constructor(props: {}) {
       super(props);
 
+      const stateActuator = StateActuator(state);
+
       this.state = { model: stateActuator.initialModel };
 
-      this.stateIt = stateActuator.stateIterator();
-      this.stateUpdater = stateActuator.updater as Updater<AnyMsg>;
+      this.stateIter = stateActuator.stateIterator();
+      this.stateActuator = stateActuator;
     }
 
     async componentDidMount() {
       // If the actuator cannot process the message,
       // allow it to "bubble" up the component hierarchy to the next actuator.
-      stateActuator.unhandledUpdater = this.context;
+      this.stateActuator.unhandledUpdater = this.context;
 
       // Start processing state changes
-      for await (const nextModel of this.stateIt) {
+      for await (const nextModel of this.stateIter) {
         this.setState({ model: nextModel });
       }
     }
 
     componentWillUnmount() {
       // Need to tell state generator we're done
-      this.stateIt.return?.();
+      this.stateIter.return?.();
     }
 
     componentDidCatch(error: Error) {
       // Tell the state generator a rendering error occurred
-      this.stateIt.throw?.(error);
+      this.stateIter.throw?.(error);
     }
 
     render() {
+      const { updater } = this.stateActuator;
+
       return (
-        <UpdaterContext.Provider value={this.stateUpdater}>
-          <Component model={this.state.model} updater={this.stateUpdater} {...this.props} />
+        <UpdaterContext.Provider value={updater as Updater<AnyMsg>}>
+          <Component model={this.state.model} updater={updater} {...this.props} />
         </UpdaterContext.Provider>
       );
     }

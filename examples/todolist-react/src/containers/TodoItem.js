@@ -1,6 +1,5 @@
 import React, { useCallback, useRef } from "react";
 import useOnClickOutside from "use-onclickoutside";
-import { StateActuator } from "state-actuator";
 import { withActuator } from "state-actuator/lib/react";
 
 import useDoubleClick from "../hooks/useDoubleClick";
@@ -73,4 +72,4 @@ function TodoItem({ todo, model, updater }) {
   );
 }
 
-export default withActuator(TodoItem, StateActuator({ init, update }));
+export default withActuator(TodoItem, { init, update });

@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import useRouter from "use-react-router";
-import { StateActuator } from "state-actuator";
 import { withActuator } from "state-actuator/lib/react";
 
 import useInput from "../hooks/useInput";
@@ -160,4 +159,4 @@ function TodoList({ model, updater }) {
   );
 }
 
-export default withActuator(TodoList, StateActuator({ init, update, subscriptions }));
+export default withActuator(TodoList, { init, update, subscriptions });

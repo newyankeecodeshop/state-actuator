@@ -1,13 +1,11 @@
-import { globalReducer } from "react-hook-utils";
-
 import { guid } from "../utils";
 
-export const newTodo = label => ({
+export const newTodo = (label) => ({
   done: false,
   id: guid(),
-  label: (label || "").trim()
+  label: (label || "").trim(),
 });
-
+/*
 export const reducer = {
   // Delete a todo by id
   deleteTodo: (state, id) => state.filter(i => i.id !== id),
@@ -55,4 +53,4 @@ export default globalReducer(
   reducer,
   // On state change, persist to local storage
   todos => localStorage.setItem("todos", JSON.stringify(todos))
-);
+);*/

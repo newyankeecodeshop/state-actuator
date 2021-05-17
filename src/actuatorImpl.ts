@@ -33,18 +33,22 @@ class ActuatorImpl<Model, Msg extends AnyMsg> implements StateActuator<Model, Ms
 
   stateIterator(): AsyncGenerator<Model> {
     // Create a message iterator based on messages received via `this.updater`
-    const messageIt = new EventIterator<Msg>((queue) => {
+    const messageIter = new EventIterator<Msg>((queue) => {
       const count = this.messageReceivers.push(queue.push);
       return () => this.messageReceivers.splice(count - 1, 1);
     });
-    return this.processMessages(messageIt);
+    // If the processor has subscriptions, compose them
+    if (this.stateful.subscriptions) {
+      return this.withSubscriptions(this.processMessages(messageIter));
+    }
+    return this.processMessages(messageIter);
   }
 
-  private async *processMessages(messageIt: EventIterator<Msg>) {
+  private async *processMessages(messageIter: EventIterator<Msg>) {
     // Each iterator instance maintains its own model state
     let model = this.initialModel;
 
-    for await (const msg of messageIt) {
+    for await (const msg of messageIter) {
       const nextModel = this.processMessage(model, msg);
 
       if (nextModel === undefined) {
@@ -73,6 +77,15 @@ class ActuatorImpl<Model, Msg extends AnyMsg> implements StateActuator<Model, Ms
     }
 
     return result;
+  }
+
+  private async *withSubscriptions(modelIter: AsyncGenerator<Model>) {
+    const { subscriptions } = this.stateful;
+
+    for await (const model of modelIter) {
+      subscriptions!(model);
+      yield model;
+    }
   }
 }
 

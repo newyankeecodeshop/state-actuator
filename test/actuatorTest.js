@@ -1,5 +1,5 @@
 const assert = require("assert");
-const { StateActuator } = require("../index");
+const { StateActuator } = require("../lib/index");
 
 function delay(value) {
   return new Promise((resolve) => setTimeout(resolve, 10, value));
@@ -11,7 +11,7 @@ describe("StateActuator", function () {
       return { data: ["init"], changeCount: 0 };
     },
     update(model, msg) {
-      switch (msg.id) {
+      switch (msg.type) {
         case "AddData":
           return { data: model.data.concat(msg.value), changeCount: model.changeCount + 1 };
 
@@ -19,7 +19,7 @@ describe("StateActuator", function () {
           return { data: [], changeCount: model.changeCount + 1 };
 
         case "LoadData":
-          return { model, message: delay({ id: "LoadDataSuccess", data: ["a", "b", "c"] }) };
+          return [model, delay({ type: "LoadDataSuccess", data: ["a", "b", "c"] })];
 
         case "LoadDataSuccess":
           return { data: msg.data, changeCount: model.changeCount + 1 };
@@ -38,9 +38,9 @@ describe("StateActuator", function () {
       const actuator = StateActuator(stateful);
       const iterator = actuator.stateIterator();
 
-      actuator.updater({ id: "AddData", value: "New York" });
-      actuator.updater({ id: "ClearData" });
-      actuator.updater({ id: "AddData", value: "Rhode Island" });
+      actuator.updater({ type: "AddData", value: "New York" });
+      actuator.updater({ type: "ClearData" });
+      actuator.updater({ type: "AddData", value: "Rhode Island" });
 
       assert.deepStrictEqual(await iterator.next(), {
         done: false,
@@ -62,8 +62,8 @@ describe("StateActuator", function () {
       const actuator = StateActuator(stateful);
       const iterator = actuator.stateIterator();
 
-      actuator.updater({ id: "AddData", value: "New York" });
-      actuator.updater({ id: "LoadData" });
+      actuator.updater({ type: "AddData", value: "New York" });
+      actuator.updater({ type: "LoadData" });
 
       assert.deepStrictEqual(await iterator.next(), {
         done: false,

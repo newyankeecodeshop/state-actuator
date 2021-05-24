@@ -4,7 +4,7 @@ import ActuatorImpl from "./actuatorImpl";
  * All messages require an identifier.
  * The identifier should be serializable so messages can be persisted.
  */
-export type AnyMsg = { id: string };
+export type AnyMsg = { readonly type: string };
 
 /**
  * An updater receives messages to be processed by the state generator.
@@ -14,28 +14,23 @@ export type Updater<M extends AnyMsg> = (msg: M) => void;
 /**
  * An update function can return new state plus message(s) to send.
  */
-export type StateChange<Model, Msg extends AnyMsg> = {
-  model: Model;
-  message?: Promise<Msg> | Promise<Msg>[];
-};
+export type StateChange<Model, Msg extends AnyMsg> = Model | [Model, ...Promise<Msg>[]];
 
 /**
  * The functions necessary to implement a stateful component that can
  * process messages.
  */
-// TODO: renname me!
-export interface Stateful<Model, Msg extends AnyMsg> {
+export interface ModelProvider<Model, Msg extends AnyMsg> {
   /**
    * Creates the initial state.
-   * // TODO: Also allow folks to send an initial message!
    */
-  init(): Model;
+  init(): StateChange<Model, Msg>;
   /**
    * Converts messages into new models.
    * Can also return messages to be sent asynchronously, enabling
    * state changes based on network responses or other async activity.
    */
-  update(model: Model, msg: Msg): Model | StateChange<Model, Msg>;
+  update(model: Model, msg: Msg): StateChange<Model, Msg> | undefined;
   /**
    * Provides a mechanism to generate messages based on an asynchronous API.
    * It's called on every model update.
@@ -60,7 +55,7 @@ export interface StateActuator<Model, Msg extends AnyMsg> {
   /**
    * The updater that receives messages not handled by this actuator.
    */
-  unhandledUpdater?: Updater<Msg>;
+  outboundMsgHandler?: Updater<Msg>;
 
   /**
    * Return a new iterator over state changes.
@@ -71,8 +66,18 @@ export interface StateActuator<Model, Msg extends AnyMsg> {
 
 /**
  * Create a state actuator given the state definition
+ * @param provider Functions to implement the state management lifecycle
  * @returns The actuator implementation
  */
-export function StateActuator<Model, Msg extends AnyMsg>(state: Stateful<Model, Msg>) {
-  return new ActuatorImpl(state);
+export function StateActuator<Model, Msg extends AnyMsg>(
+  provider: ModelProvider<Model, Msg>
+): StateActuator<Model, Msg> {
+  return new ActuatorImpl(provider);
+}
+
+/**
+ * Test a value to see if it implements the 'AnyMsg' structure.
+ */
+export function isActuatorMsg(param: any): param is AnyMsg {
+  return typeof param === "object" && "type" in param;
 }

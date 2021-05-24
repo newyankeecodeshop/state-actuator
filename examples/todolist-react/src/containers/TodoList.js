@@ -12,12 +12,12 @@ function init() {
   return JSON.parse(localStorage.getItem("todos") || "[]");
 }
 
-const AddTodo = (label) => ({ id: "AddTodo", label });
-const ClearCompleted = () => ({ id: "ClearCompleted" });
-const ToggleAllDone = (filter) => ({ id: "ToggleAllDone", filter });
+const AddTodo = (label) => ({ type: "AddTodo", label });
+const ClearCompleted = () => ({ type: "ClearCompleted" });
+const ToggleAllDone = (filter) => ({ type: "ToggleAllDone", filter });
 
 function update(model, msg) {
-  switch (msg.id) {
+  switch (msg.type) {
     case "AddTodo":
       return model.concat(newTodo(msg.label));
 

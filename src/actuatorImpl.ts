@@ -1,5 +1,5 @@
 import { EventIterator } from "event-iterator";
-import type { AnyMsg, StateActuator, Stateful, Updater } from "./actuator";
+import type { AnyMsg, ModelProvider, StateActuator, StateChange, Updater } from "./actuator";
 
 const { isArray } = Array;
 
@@ -12,36 +12,38 @@ const { isArray } = Array;
 class ActuatorImpl<Model, Msg extends AnyMsg> implements StateActuator<Model, Msg> {
   readonly initialModel: Readonly<Model>;
 
-  public unhandledUpdater?: Updater<Msg>;
+  public outboundMsgHandler?: Updater<Msg>;
 
-  private stateful: Stateful<Model, Msg>;
-  // Each iterator will have its own message receiver
-  private messageReceivers: Updater<Msg>[];
+  private provider: ModelProvider<Model, Msg>;
+  // We need an Iterator<Msg> to implement Iterator<Model>
+  private messageIter: EventIterator<Msg>;
 
-  constructor(stateful: Stateful<Model, Msg>) {
-    // TODO: support model + msg
-    this.initialModel = stateful.init();
-    this.stateful = stateful;
-    this.messageReceivers = [];
+  constructor(stateful: ModelProvider<Model, Msg>) {
+    const initialState = stateful.init();
 
-    this.updater = this.updater.bind(this);
+    this.provider = stateful;
+    // The `updater` implementation will add messages to the iterator queue
+    this.messageIter = new EventIterator<Msg>((queue) => {
+      this.updater = (msg: Msg) => queue.push(msg);
+      return () => (this.updater = ActuatorImpl.prototype.updater);
+    });
+    // Like with updates, the initial state may include async messages to send
+    this.initialModel = processStateChange(initialState, this.updater);
   }
 
-  updater(msg: Msg): void {
-    for (const receiver of this.messageReceivers) receiver(msg);
+  updater(_: Msg) {
+    console.warn("The iterator has been closed - messages are ignored");
   }
 
   stateIterator(): AsyncGenerator<Model> {
-    // Create a message iterator based on messages received via `this.updater`
-    const messageIter = new EventIterator<Msg>((queue) => {
-      const count = this.messageReceivers.push(queue.push);
-      return () => this.messageReceivers.splice(count - 1, 1);
-    });
-    // If the processor has subscriptions, compose them
-    if (this.stateful.subscriptions) {
-      return this.withSubscriptions(this.processMessages(messageIter));
+    const modelIter = this.processMessages(this.messageIter);
+
+    // Subscriptions are invoked on each model update, so use another generator
+    // that invokes subscriptions for each new model.
+    if (this.provider.subscriptions) {
+      return withSubscriptions(modelIter, this.provider.subscriptions);
     }
-    return this.processMessages(messageIter);
+    return modelIter;
   }
 
   private async *processMessages(messageIter: EventIterator<Msg>) {
@@ -53,7 +55,7 @@ class ActuatorImpl<Model, Msg extends AnyMsg> implements StateActuator<Model, Ms
 
       if (nextModel === undefined) {
         // Need to pass on message to any parent actuator
-        this.unhandledUpdater?.(msg);
+        this.outboundMsgHandler?.(msg);
       } else if (nextModel !== model) {
         // Return new values only when the model is updated
         yield (model = nextModel);
@@ -62,31 +64,37 @@ class ActuatorImpl<Model, Msg extends AnyMsg> implements StateActuator<Model, Ms
   }
 
   private processMessage(model: Model, msg: Msg): Model | undefined {
-    let result = this.stateful.update(model, msg);
+    let result = this.provider.update(model, msg);
     // Unhandled messages will be given to next actuator
     if (result === undefined) return result;
 
-    // Handle any asynchronous messages
-    if ("model" in result) {
-      if (isArray(result.message)) {
-        result.message.forEach((p) => p.then(this.updater));
-      } else if (result.message) {
-        result.message.then(this.updater);
-      }
-      result = result.model;
-    }
-
-    return result;
+    return processStateChange(result, this.updater);
   }
+}
 
-  private async *withSubscriptions(modelIter: AsyncGenerator<Model>) {
-    const { subscriptions } = this.stateful;
-
-    for await (const model of modelIter) {
-      subscriptions!(model);
-      yield model;
-    }
+async function* withSubscriptions<Model>(
+  modelIter: AsyncGenerator<Model>,
+  subscriptions: (model: Model) => void
+) {
+  // TODO: test to see if the model change requires a subscription call
+  for await (const model of modelIter) {
+    subscriptions(model);
+    yield model;
   }
+}
+
+function processStateChange<Model, Msg extends AnyMsg>(
+  result: StateChange<Model, Msg>,
+  updater: Updater<Msg>
+): Model {
+  // A tuple that contains a promise should not be treated as a Model.
+  // A model that is an array is very certain never to be an array of promises.
+  if (isArray(result) && result[1] instanceof Promise) {
+    const [model, ...promises] = result;
+    promises.forEach((p) => p.then(updater));
+    return model;
+  }
+  return result as Model;
 }
 
 export default ActuatorImpl;

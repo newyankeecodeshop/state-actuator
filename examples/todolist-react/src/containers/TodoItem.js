@@ -11,13 +11,13 @@ function init() {
 
 // --- MESSAGES ----
 
-const DeleteTodo = (todo) => ({ id: "DeleteTodo", todo });
-const SetEditing = (value) => ({ id: "SetEditing", value });
-const SetLabel = (todo, label) => ({ id: "SetLabel", todo, label });
-const ToggleDone = (todo) => ({ id: "ToggleDone", todo });
+const DeleteTodo = (todo) => ({ type: "DeleteTodo", todo });
+const SetEditing = (value) => ({ type: "SetEditing", value });
+const SetLabel = (todo, label) => ({ type: "SetLabel", todo, label });
+const ToggleDone = (todo) => ({ type: "ToggleDone", todo });
 
 function update(model, msg) {
-  switch (msg.id) {
+  switch (msg.type) {
     case "SetEditing":
       return { ...model, editing: msg.value };
   }

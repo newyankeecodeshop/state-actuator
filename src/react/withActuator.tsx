@@ -1,5 +1,5 @@
 import * as React from "react";
-import { AnyMsg, StateActuator, Stateful, Updater } from "../actuator";
+import { AnyMsg, ModelProvider, StateActuator, Updater } from "../actuator";
 import { UpdaterContext } from "./context";
 
 /**
@@ -11,16 +11,29 @@ interface IStateful<Model, Msg extends AnyMsg> {
 }
 
 /**
+ * TODO: Need a way to pass initial model
+ */
+interface IActuatorProps {
+  /**
+   * Provide a means to handle messages that are meant to be handled by
+   * a parent component (or application). This is useful for integrating
+   * stateful components with existing applications that have a different
+   * mechanism for handling UI events.
+   */
+  outboundMsgHandler?: Updater<AnyMsg>;
+}
+
+/**
  * Enable a React component to be stateful using the given state generator.
  * @param Component The react component
  * @param stateActuator The generator supplying state changes
  * @returns A stateful React component
  */
-export function withActuator<Model, Msg extends AnyMsg>(
-  Component: React.ComponentType<IStateful<Model, Msg>>,
-  state: Stateful<Model, Msg>
-) {
-  class WithActuator extends React.Component<{}, { model: Model }> {
+export function withActuator<Model, Msg extends AnyMsg, P>(
+  Component: React.ComponentType<P & IStateful<Model, Msg>>,
+  provider: ModelProvider<Model, Msg>
+): React.ComponentType<P> {
+  class WithActuator extends React.Component<P & IActuatorProps, { model: Model }> {
     static contextType = UpdaterContext;
 
     declare context: React.ContextType<typeof UpdaterContext>;
@@ -28,10 +41,11 @@ export function withActuator<Model, Msg extends AnyMsg>(
     private stateIter: AsyncIterableIterator<Model>;
     private stateActuator: StateActuator<Model, Msg>;
 
-    constructor(props: {}) {
+    constructor(props: P) {
       super(props);
 
-      const stateActuator = StateActuator(state);
+      // TODO: pass props to actuator to implement `init(args)`?
+      const stateActuator = StateActuator(provider);
 
       this.state = { model: stateActuator.initialModel };
 
@@ -42,7 +56,7 @@ export function withActuator<Model, Msg extends AnyMsg>(
     async componentDidMount() {
       // If the actuator cannot process the message,
       // allow it to "bubble" up the component hierarchy to the next actuator.
-      this.stateActuator.unhandledUpdater = this.context;
+      this.stateActuator.outboundMsgHandler = this.props.outboundMsgHandler ?? this.context;
 
       // Start processing state changes
       for await (const nextModel of this.stateIter) {

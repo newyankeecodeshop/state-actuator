@@ -1,4 +1,6 @@
 import * as React from "react";
+import hoistNonReactStatics from "hoist-non-react-statics";
+
 import { AnyMsg, ModelProvider, StateActuator, Updater } from "../actuator";
 import { UpdaterContext } from "./context";
 
@@ -85,5 +87,6 @@ export function withActuator<Model, Msg extends AnyMsg, P>(
     }
   }
 
+  hoistNonReactStatics(WithActuator, Component);
   return WithActuator;
 }

@@ -25,12 +25,23 @@ application state using basic language features such as Promises and Iterators.
 ```sh
 $ npm install state-actuator
 ```
-
 or
-
 ```sh
 $ yarn add state-actuator
 ```
+
+### Install with React
+
+If you're planning on using `state-actuator` to manage state for React components, you also need to make sure `react` and `hoist-non-react-statics` is installed. (Those packages are not specified as peer dependencies since they're necessary only when importing the React-specific HOC.)
+
+```sh
+$ npm install react hoist-non-react-statics
+```
+or
+```sh
+$ yarn add react hoist-non-react-statics
+```
+
 
 ## Usage Example
 

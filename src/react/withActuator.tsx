@@ -33,7 +33,7 @@ interface IActuatorProps {
  */
 export function withActuator<Model, Msg extends AnyMsg, P>(
   Component: React.ComponentType<P & IStateful<Model, Msg>>,
-  provider: ModelProvider<Model, Msg>
+  provider: ModelProvider<Model, Msg, P>
 ): React.ComponentType<P> {
   class WithActuator extends React.Component<P & IActuatorProps, { model: Model }> {
     static contextType = UpdaterContext;
@@ -46,8 +46,11 @@ export function withActuator<Model, Msg extends AnyMsg, P>(
     constructor(props: P) {
       super(props);
 
-      // TODO: pass props to actuator to implement `init(args)`?
-      const stateActuator = StateActuator(provider);
+      // The default update context is the current props
+      const stateActuator = StateActuator({
+        context: () => this.props,
+        ...provider,
+      });
 
       this.state = { model: stateActuator.initialModel };
 

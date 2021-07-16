@@ -25,7 +25,9 @@ application state using basic language features such as Promises and Iterators.
 ```sh
 $ npm install state-actuator
 ```
+
 or
+
 ```sh
 $ yarn add state-actuator
 ```
@@ -37,11 +39,12 @@ If you're planning on using `state-actuator` to manage state for React component
 ```sh
 $ npm install react hoist-non-react-statics
 ```
+
 or
+
 ```sh
 $ yarn add react hoist-non-react-statics
 ```
-
 
 ## Usage Example
 
@@ -77,10 +80,15 @@ Messages are operations that change the state of the component. They typically r
 changes from the outside world. For example, a message `ChangeLocation` might be sent every time the OS notifies the app that the
 location has changed. (See "Subscriptions" below.)
 
+## Views
+
+Views are responsible for two crucial parts of an application: (1) rendering the UI based on current state and (2) sending messages based on user actions from the UI.
+
 ## Subscriptions
 
 A subscription is an optional feature in state actuators. It allows messages to be sent from sources other than the UI view.
 
-## Views
+## Context
 
-Views are responsible for two crucial parts of an application: (1) rendering the UI based on current state and (2) sending messages based on user actions from the UI.
+Context provides access to state that is managed outside `state-actuator`. For example, if you're populating your model from a database
+connection, the `Context` could include a database session object.

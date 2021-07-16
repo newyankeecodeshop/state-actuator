@@ -20,22 +20,29 @@ export type StateChange<Model, Msg extends AnyMsg> = Model | [Model, ...Promise<
  * The functions necessary to implement a stateful component that can
  * process messages.
  */
-export interface ModelProvider<Model, Msg extends AnyMsg> {
+export interface ModelProvider<Model, Msg extends AnyMsg, Context> {
   /**
    * Creates the initial state.
+   * Context is provided to allow models to generate state based on other data sources.
    */
-  init(): StateChange<Model, Msg>;
+  init(context: Context): StateChange<Model, Msg>;
   /**
    * Converts messages into new models.
    * Can also return messages to be sent asynchronously, enabling
    * state changes based on network responses or other async activity.
    */
-  update(model: Model, msg: Msg): StateChange<Model, Msg> | undefined;
+  update(model: Model, msg: Msg, context: Context): StateChange<Model, Msg> | undefined;
   /**
    * Provides a mechanism to generate messages based on an asynchronous API.
    * It's called on every model update.
    */
   subscriptions?(model: Model): void;
+  /**
+   * Return the current context for use in update processing.
+   * Context is useful for providing access to other state that is not managed
+   * by `state-actuator`.
+   */
+  context?(): Context;
 }
 
 /**
@@ -69,8 +76,8 @@ export interface StateActuator<Model, Msg extends AnyMsg> {
  * @param provider Functions to implement the state management lifecycle
  * @returns The actuator implementation
  */
-export function StateActuator<Model, Msg extends AnyMsg>(
-  provider: ModelProvider<Model, Msg>
+export function StateActuator<Model, Msg extends AnyMsg, Context = {}>(
+  provider: ModelProvider<Model, Msg, Context>
 ): StateActuator<Model, Msg> {
   return new ActuatorImpl(provider);
 }

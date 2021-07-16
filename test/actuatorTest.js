@@ -75,4 +75,31 @@ describe("StateActuator", function () {
       });
     });
   });
+
+  describe("Using Context", () => {
+    const actuator = StateActuator({
+      context: () => 1000,
+      init: (context) => ({ state: context }),
+      update: (model, _, context) => {
+        // Keep adding context to indicate it worked
+        return { state: model.state + context };
+      },
+    });
+    const iterator = actuator.stateIterator();
+
+    it("passes context to the 'init()' function", () => {
+      assert(actuator.initialModel.state === 1000);
+    });
+
+    it("passes context to the 'update()' function", async () => {
+      actuator.updater({ type: "DoSomething" });
+      actuator.updater({ type: "DoSomething" });
+
+      const result1 = await iterator.next();
+      const result2 = await iterator.next();
+
+      assert(result1.value.state === 2000);
+      assert(result2.value.state === 3000);
+    });
+  });
 });

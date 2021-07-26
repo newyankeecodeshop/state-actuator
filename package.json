@@ -26,7 +26,8 @@
   "author": "Andrew Goodale <andrewhgoodale@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "event-iterator": "^2.0.0"
+    "event-iterator": "^2.0.0",
+    "sinon": "^11.1.1"
   },
   "devDependencies": {
     "@types/hoist-non-react-statics": "^3.3.1",

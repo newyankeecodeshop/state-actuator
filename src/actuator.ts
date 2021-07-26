@@ -1,4 +1,5 @@
 import ActuatorImpl from "./actuatorImpl";
+import SubscriptionImpl from "./subscription";
 
 /**
  * All messages require an identifier.
@@ -15,6 +16,21 @@ export type Updater<M extends AnyMsg> = (msg: M) => void;
  * An update function can return new state plus message(s) to send.
  */
 export type StateChange<Model, Msg extends AnyMsg> = Model | [Model, ...Promise<Msg>[]];
+
+type Subscription<Msg extends AnyMsg> = SubscriptionImpl<Msg>;
+
+/**
+ * If a subscription needs to clean up external event listeners or intervals,
+ * it can return a function to be called when the subscription is removed.
+ */
+type Unsubscriber = () => void;
+
+/**
+ * The subscription's implementation function. The `updater` provides
+ * a means for the subscription to send messages dervied from external events.
+ * @param updater Actuator's updater
+ */
+export type Subscriber<M extends AnyMsg> = (updater: Updater<M>) => undefined | Unsubscriber;
 
 /**
  * The functions necessary to implement a stateful component that can
@@ -36,7 +52,7 @@ export interface ModelProvider<Model, Msg extends AnyMsg, Context> {
    * Provides a mechanism to generate messages based on an asynchronous API.
    * It's called on every model update.
    */
-  subscriptions?(model: Model): void;
+  subscribe?(model: Model, context: Context): Subscription<Msg>;
   /**
    * Return the current context for use in update processing.
    * Context is useful for providing access to other state that is not managed
@@ -76,7 +92,7 @@ export interface StateActuator<Model, Msg extends AnyMsg> {
  * @param provider Functions to implement the state management lifecycle
  * @returns The actuator implementation
  */
-export function StateActuator<Model, Msg extends AnyMsg, Context = {}>(
+export function StateActuator<Model, Msg extends AnyMsg, Context>(
   provider: ModelProvider<Model, Msg, Context>
 ): StateActuator<Model, Msg> {
   return new ActuatorImpl(provider);
@@ -87,4 +103,17 @@ export function StateActuator<Model, Msg extends AnyMsg, Context = {}>(
  */
 export function isActuatorMsg(param: any): param is AnyMsg {
   return typeof param === "object" && "type" in param;
+}
+
+/**
+ * Create a object to manage the lifetime of the given subscription function.
+ * @param subscriber The implementation of the subscriber
+ * @param keys (optional) controls whether a new instance replaces the current
+ * @returns The subscription record
+ */
+export function Subscription<Msg extends AnyMsg>(
+  subscriber: Subscriber<Msg>,
+  keys?: Array<any>
+): Subscription<Msg> {
+  return new SubscriptionImpl(subscriber, keys);
 }

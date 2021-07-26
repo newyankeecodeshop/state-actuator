@@ -1,5 +1,6 @@
 const assert = require("assert");
-const { StateActuator } = require("../lib/index");
+const sinon = require("sinon");
+const { StateActuator, Subscription } = require("../lib/index");
 
 function delay(value) {
   return new Promise((resolve) => setTimeout(resolve, 10, value));
@@ -100,6 +101,62 @@ describe("StateActuator", function () {
 
       assert(result1.value.state === 2000);
       assert(result2.value.state === 3000);
+    });
+  });
+
+  describe("Subscription processing", () => {
+    it("calls the subscription every time the model changes", async () => {
+      // This subscribe function just tracks calls
+      const subscribeFunc = sinon.fake();
+      const subscribe = sinon.fake.returns(Subscription(subscribeFunc));
+
+      const actuator = StateActuator({ ...stateful, subscribe });
+      const iterator = actuator.stateIterator();
+
+      let asyncResult = iterator.next();
+      assert(subscribe.calledOnce);
+      assert(subscribeFunc.calledOnceWith(actuator.updater));
+
+      actuator.updater({ type: "AddData", value: "New York" });
+      actuator.updater({ type: "AddData", value: "Philadelphia" });
+
+      let newModel = await asyncResult;
+      assert(subscribe.callCount == 2);
+
+      newModel = await iterator.next();
+      assert(subscribe.callCount == 3);
+    });
+
+    it("uses keys to determine when to remove the subscription", async () => {
+      const subscribeRemove = sinon.fake();
+
+      function subscribe(model) {
+        return Subscription(
+          (_) => {
+            return subscribeRemove;
+          },
+          [model.changeCount]
+        );
+      }
+
+      const actuator = StateActuator({ ...stateful, subscribe });
+      const iterator = actuator.stateIterator();
+
+      let asyncResult = iterator.next();
+
+      // Send some messages
+      actuator.updater({ type: "AddData", value: "New York" });
+      actuator.updater({ type: "AddData", value: "Philadelphia" });
+      actuator.updater({ type: "AddData", value: "Baltimore" });
+
+      let newModel = await asyncResult;
+      assert(subscribeRemove.callCount == 1);
+
+      newModel = await iterator.next();
+      assert(subscribeRemove.callCount == 2);
+
+      newModel = await iterator.next();
+      assert(subscribeRemove.callCount == 3);
     });
   });
 });

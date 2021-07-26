@@ -1,7 +1,11 @@
 import { EventIterator } from "event-iterator";
 import type { AnyMsg, ModelProvider, StateActuator, StateChange, Updater } from "./actuator";
+import Subscription from "./subscription";
 
 const { isArray } = Array;
+const { is } = Object;
+
+const defaultContext: () => unknown = () => {};
 
 /**
  * The actuator is a state container which models state changes using
@@ -17,6 +21,8 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
   private provider: ModelProvider<Model, Msg, C>;
   // We need an Iterator<Msg> to implement Iterator<Model>
   private messageIter: EventIterator<Msg>;
+
+  private currentSub?: Subscription<Msg>;
 
   constructor(stateful: ModelProvider<Model, Msg, C>) {
     const initialState = stateful.init(stateful.context?.()!);
@@ -36,19 +42,16 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
   }
 
   stateIterator(): AsyncGenerator<Model> {
-    const modelIter = this.processMessages(this.messageIter);
-
-    // Subscriptions are invoked on each model update, so use another generator
-    // that invokes subscriptions for each new model.
-    if (this.provider.subscriptions) {
-      return withSubscriptions(modelIter, this.provider.subscriptions);
-    }
-    return modelIter;
+    // TODO: What happens if another generator is created?
+    // Should the creation of the iterator start a new process?
+    return this.processMessages(this.messageIter);
   }
 
   private async *processMessages(messageIter: EventIterator<Msg>) {
     // Each iterator instance maintains its own model state
     let model = this.initialModel;
+
+    this.callSubscriber(model);
 
     for await (const msg of messageIter) {
       const nextModel = this.processMessage(model, msg);
@@ -56,8 +59,10 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
       if (nextModel === undefined) {
         // Need to pass on message to any parent actuator
         this.outboundMsgHandler?.(msg);
-      } else if (nextModel !== model) {
+      } else if (!is(nextModel, model)) {
         // Return new values only when the model is updated
+        this.callSubscriber(nextModel);
+
         yield (model = nextModel);
       }
     }
@@ -71,16 +76,21 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
       return processStateChange(result, this.updater);
     }
   }
-}
 
-async function* withSubscriptions<Model>(
-  modelIter: AsyncGenerator<Model>,
-  subscriptions: (model: Model) => void
-) {
-  // TODO: test to see if the model change requires a subscription call
-  for await (const model of modelIter) {
-    subscriptions(model);
-    yield model;
+  // ----- SUBSCRIPTIONS -----
+
+  private callSubscriber(model: Model) {
+    const { subscribe, context = defaultContext } = this.provider;
+
+    if (!subscribe) return;
+
+    const subscription = subscribe(model, context() as C);
+
+    if (!this.currentSub?.equals(subscription)) {
+      this.currentSub?.remove();
+      this.currentSub = subscription;
+      this.currentSub.invoke(this.updater);
+    }
   }
 }
 

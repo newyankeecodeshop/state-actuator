@@ -31,10 +31,10 @@ interface IActuatorProps {
  * @param stateActuator The generator supplying state changes
  * @returns A stateful React component
  */
-export function withActuator<Model, Msg extends AnyMsg, P>(
-  Component: React.ComponentType<P & IStateful<Model, Msg>>,
+export function withActuator<Model, Msg extends AnyMsg, P extends IStateful<Model, Msg>>(
+  Component: React.ComponentType<P>,
   provider: ModelProvider<Model, Msg, P>
-): React.ComponentType<P> {
+): React.ComponentType<Omit<P, keyof IStateful<Model, Msg>>> {
   class WithActuator extends React.Component<P & IActuatorProps, { model: Model }> {
     static contextType = UpdaterContext;
 
@@ -84,6 +84,7 @@ export function withActuator<Model, Msg extends AnyMsg, P>(
 
       return (
         <UpdaterContext.Provider value={updater as Updater<AnyMsg>}>
+          {/* @ts-ignore-next */}
           <Component model={this.state.model} updater={updater} {...this.props} />
         </UpdaterContext.Provider>
       );
@@ -91,5 +92,6 @@ export function withActuator<Model, Msg extends AnyMsg, P>(
   }
 
   hoistNonReactStatics(WithActuator, Component);
+  /* @ts-ignore-next */
   return WithActuator;
 }

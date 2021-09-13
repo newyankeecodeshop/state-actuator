@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import useRouter from "use-react-router";
+import { Subscription, assignTo } from "state-actuator";
 import { withActuator } from "state-actuator/lib/react";
 
 import useInput from "../hooks/useInput";
@@ -30,7 +31,7 @@ function update(model, msg) {
     case "SetLabel":
       return model.map((todo) => {
         if (todo === msg.todo) {
-          return { ...todo, label: msg.label };
+          return assignTo(todo, ["label", msg.label]);
         } else {
           return todo;
         }
@@ -39,7 +40,7 @@ function update(model, msg) {
     case "ToggleDone":
       return model.map((todo) => {
         if (todo === msg.todo) {
-          return { ...todo, done: !todo.done };
+          return assignTo(todo, ["done", !todo.done]);
         } else {
           return todo;
         }
@@ -53,16 +54,18 @@ function update(model, msg) {
 
       return model.map((todo) => {
         if (visibleTodos.includes(todo)) {
-          return { ...todo, done: !allSelected };
+          return assignTo(todo, ["done", !allSelected]);
         }
         return todo;
       });
   }
 }
 
-function subscriptions(model) {
+function subscribe(model) {
   // The model changed so lets save it.
-  localStorage.setItem("todos", JSON.stringify(model));
+  return Subscription(() => {
+    localStorage.setItem("todos", JSON.stringify(model));
+  }, [model]);
 }
 
 function TodoList({ model, updater }) {
@@ -159,4 +162,4 @@ function TodoList({ model, updater }) {
   );
 }
 
-export default withActuator(TodoList, { init, update, subscriptions });
+export default withActuator(TodoList, { init, update, subscribe });

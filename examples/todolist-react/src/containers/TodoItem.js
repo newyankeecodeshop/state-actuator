@@ -1,5 +1,6 @@
 import React, { useCallback, useRef } from "react";
 import useOnClickOutside from "use-onclickoutside";
+import { assignTo } from "state-actuator";
 import { withActuator } from "state-actuator/lib/react";
 
 import useDoubleClick from "../hooks/useDoubleClick";
@@ -19,7 +20,7 @@ const ToggleDone = (todo) => ({ type: "ToggleDone", todo });
 function update(model, msg) {
   switch (msg.type) {
     case "SetEditing":
-      return { ...model, editing: msg.value };
+      return assignTo(model, ["editing", msg.value]);
   }
 }
 

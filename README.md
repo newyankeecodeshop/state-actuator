@@ -12,8 +12,7 @@
 There are a lot of choices for state management, both in the React ecosystem and beyond. I wanted
 to explore a state system that imagines application or component state as an (asynchronous) iteration
 over instances of models. What drives the changes to the model? Messages. Messages have been used in
-GUI application development for decades; the Microsoft Win32 API sends messages to windows to change
-their visual or behavioral attributes.
+GUI application development for decades, and messages provide a structured but flexible mechanism to implement UI changes.
 
 ES2018 introduced asynchronous iteration to the JavaScript language. This means we can now model
 application state using basic language features such as Promises and Iterators.
@@ -92,3 +91,7 @@ A subscription is an optional feature in state actuators. It allows messages to 
 
 Context provides access to state that is managed outside `state-actuator`. For example, if you're populating your model from a database
 connection, the `Context` could include a database session object.
+
+# Integrations
+
+See how to use `state-actuator` with React components: [react-integration.md](docs/react-integration.md)

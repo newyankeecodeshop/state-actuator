@@ -13,7 +13,7 @@ interface IStateful<Model, Msg extends AnyMsg> {
 }
 
 /**
- * TODO: Need a way to pass initial model
+ * Additional props supported by components using `withActuator`.
  */
 interface IActuatorProps {
   /**
@@ -34,7 +34,7 @@ interface IActuatorProps {
 export function withActuator<Model, Msg extends AnyMsg, P extends IStateful<Model, Msg>>(
   Component: React.ComponentType<P>,
   provider: ModelProvider<Model, Msg, P>
-): React.ComponentType<Omit<P, keyof IStateful<Model, Msg>>> {
+): React.ComponentType<Omit<P, keyof IStateful<Model, Msg>> & IActuatorProps> {
   class WithActuator extends React.Component<P & IActuatorProps, { model: Model }> {
     static contextType = UpdaterContext;
 
@@ -81,11 +81,11 @@ export function withActuator<Model, Msg extends AnyMsg, P extends IStateful<Mode
 
     render() {
       const { updater } = this.stateActuator;
+      const { outboundMsgHandler, ...props } = this.props;
 
       return (
         <UpdaterContext.Provider value={updater as Updater<AnyMsg>}>
-          {/* @ts-ignore-next */}
-          <Component model={this.state.model} updater={updater} {...this.props} />
+          <Component {...(props as P)} model={this.state.model} updater={updater} />
         </UpdaterContext.Provider>
       );
     }

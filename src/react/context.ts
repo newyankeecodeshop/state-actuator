@@ -13,14 +13,19 @@ function nullUpdater(msg: AnyMsg) {
 }
 
 /**
- * A hook which binds a prop callback to send a message via the updater
- * in context.
+ * A hook which binds a prop callback to send a specific message via the updater in context.
+ * This uses the callback hook so that instances are cached and can be used with pure components.
+ *
+ * @param MsgConstructor The message to send to that updater
  * @returns A function to use with a callback prop
+ * @see https://reactjs.org/docs/hooks-reference.html#usecallback
  */
-function useUpdater<Msg extends AnyMsg>(fn: (...args: any[]) => Msg) {
+function useUpdater<Msg extends AnyMsg, A extends any[]>(
+  MsgConstructor: (...args: A) => Msg
+): (...args: A) => void {
   const updater = useContext(UpdaterContext);
 
-  return useCallback((...args: any[]) => updater(fn(args)), [updater]);
+  return useCallback((...args: A) => updater(MsgConstructor(...args)), [updater]);
 }
 
 export { UpdaterContext, useUpdater };

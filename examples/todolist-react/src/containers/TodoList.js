@@ -98,14 +98,12 @@ function TodoList({ model, updater }) {
   }, [updater]);
 
   const [newValue, onNewValueChange, setNewValue] = useInput();
-  const addTodoCallback = useCallback(() => {
+  const onAddTodo = useOnEnter(() => {
     if (newValue) {
       updater(AddTodo(newValue));
       setNewValue("");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setNewValue, updater]);
-  const onAddTodo = useOnEnter(addTodoCallback);
+  });
 
   return (
     <React.Fragment>

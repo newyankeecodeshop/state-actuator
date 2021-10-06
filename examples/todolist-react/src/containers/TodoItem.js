@@ -5,7 +5,6 @@ import { withActuator } from "state-actuator/lib/react";
 
 import useDoubleClick from "../hooks/useDoubleClick";
 import useOnEnter from "../hooks/useOnEnter";
-import { SEND_TO_PARENT } from "../utils";
 
 function init() {
   return { editing: false };
@@ -23,7 +22,7 @@ function update(model, msg) {
     case "SetEditing":
       return assignTo(model, ["editing", msg.value]);
     default:
-      return SEND_TO_PARENT;
+      return undefined;
   }
 }
 

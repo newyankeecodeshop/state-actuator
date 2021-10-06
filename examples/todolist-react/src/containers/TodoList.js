@@ -7,7 +7,6 @@ import { withActuator } from "state-actuator/lib/react";
 import useInput from "../hooks/useInput";
 import useOnEnter from "../hooks/useOnEnter";
 import { newTodo } from "../reducers/useTodos";
-import { SEND_TO_PARENT } from "../utils";
 import TodoItem from "./TodoItem";
 
 function init() {
@@ -60,7 +59,7 @@ function update(model, msg) {
         return todo;
       });
     default:
-      return SEND_TO_PARENT;
+      return undefined;
   }
 }
 

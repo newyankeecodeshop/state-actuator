@@ -5,3 +5,5 @@ export function guid() {
 
   return `${s4()}${s4()}-${s4()}-${s4()}-${s4()}-${s4()}${s4()}${s4()}`;
 }
+
+export const SEND_TO_PARENT = undefined;

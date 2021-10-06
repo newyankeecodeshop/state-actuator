@@ -7,6 +7,7 @@ import { withActuator } from "state-actuator/lib/react";
 import useInput from "../hooks/useInput";
 import useOnEnter from "../hooks/useOnEnter";
 import { newTodo } from "../reducers/useTodos";
+import { SEND_TO_PARENT } from "../utils";
 import TodoItem from "./TodoItem";
 
 function init() {
@@ -58,6 +59,8 @@ function update(model, msg) {
         }
         return todo;
       });
+    default:
+      return SEND_TO_PARENT;
   }
 }
 
@@ -95,12 +98,14 @@ function TodoList({ model, updater }) {
   }, [updater]);
 
   const [newValue, onNewValueChange, setNewValue] = useInput();
-  const onAddTodo = useOnEnter(() => {
+  const addTodoCallback = useCallback(() => {
     if (newValue) {
       updater(AddTodo(newValue));
       setNewValue("");
     }
-  }, [newValue]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setNewValue, updater]);
+  const onAddTodo = useOnEnter(addTodoCallback);
 
   return (
     <React.Fragment>

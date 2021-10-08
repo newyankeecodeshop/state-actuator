@@ -33,7 +33,7 @@ interface IActuatorProps {
  */
 export function withActuator<Model, Msg extends AnyMsg, P extends IStateful<Model, Msg>>(
   Component: React.ComponentType<P>,
-  provider: ModelProvider<Model, Msg, P>
+  provider: ModelProvider<Model, Msg, Omit<P, keyof IStateful<Model, Msg>>>
 ): React.ComponentType<Omit<P, keyof IStateful<Model, Msg>> & IActuatorProps> {
   class WithActuator extends React.Component<P & IActuatorProps, { model: Model }> {
     static contextType = UpdaterContext;

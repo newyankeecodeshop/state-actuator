@@ -1,4 +1,5 @@
 export * from "./actuator";
+export { responseKey, getResponseUpdater } from "./messages";
 export * from "./updates";
 
 // Don't import stuff from the view-framework (e.g. "/react") folders here

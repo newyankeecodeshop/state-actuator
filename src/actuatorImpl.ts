@@ -1,5 +1,6 @@
 import { EventIterator } from "event-iterator";
 import type { AnyMsg, ModelProvider, StateActuator, StateChange, Updater } from "./actuator";
+import { setResponseUpdater } from "./messages";
 import Subscription from "./subscription";
 
 const { isArray } = Array;
@@ -16,7 +17,7 @@ const defaultContext: () => unknown = () => {};
 class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model, Msg> {
   readonly initialModel: Readonly<Model>;
 
-  public outboundMsgHandler?: Updater<Msg>;
+  public outboundMsgHandler?: Updater<AnyMsg>;
 
   private provider: ModelProvider<Model, Msg, C>;
   // We need an Iterator<Msg> to implement Iterator<Model>
@@ -58,7 +59,7 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
 
       if (nextModel === undefined) {
         // Need to pass on message to any parent actuator
-        this.outboundMsgHandler?.(msg);
+        this.outboundMsgHandler?.(setResponseUpdater(msg, this.updater));
       } else if (!is(nextModel, model)) {
         // Return new values only when the model is updated
         this.callSubscriber(nextModel);

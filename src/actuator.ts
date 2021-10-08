@@ -78,7 +78,7 @@ export interface StateActuator<Model, Msg extends AnyMsg> {
   /**
    * The updater that receives messages not handled by this actuator.
    */
-  outboundMsgHandler?: Updater<Msg>;
+  outboundMsgHandler?: Updater<AnyMsg>;
 
   /**
    * Return a new iterator over state changes.

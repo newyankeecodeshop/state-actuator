@@ -1,6 +1,6 @@
 const assert = require("assert");
 const sinon = require("sinon");
-const { StateActuator, Subscription } = require("../lib/index");
+const { StateActuator, Subscription, responseKey, getResponseUpdater } = require("../lib/index");
 
 function delay(value) {
   return new Promise((resolve) => setTimeout(resolve, 10, value));
@@ -157,6 +157,56 @@ describe("StateActuator", function () {
 
       newModel = await iterator.next();
       assert(subscribeRemove.callCount == 3);
+    });
+  });
+
+  describe("message responses", () => {
+    const statefulParent = {
+      init() {
+        return { title: "", body: "", responseMsg: null };
+      },
+      update(model, msg) {
+        switch (msg.type) {
+          case "ShowConfirmation":
+            return { title: msg.title, body: msg.body, responseMsg: msg[responseKey] };
+        }
+      },
+    };
+
+    function ShowConfirmation(title, body, responseMsg) {
+      return { type: "ShowConfirmation", title, body, [responseKey]: responseMsg };
+    }
+
+    const parentActuator = StateActuator(statefulParent);
+    const parentIterator = parentActuator.stateIterator();
+
+    const childActuator = StateActuator(stateful);
+    const childIterator = childActuator.stateIterator();
+
+    childActuator.outboundMsgHandler = parentActuator.updater;
+
+    it("handles the childs update msg", async () => {
+      let parentAsyncResult = parentIterator.next();
+      let childAsyncResult = childIterator.next();
+
+      const addDataMsg = { type: "AddData", value: "RI" };
+
+      childActuator.updater(ShowConfirmation("title", "body", addDataMsg));
+
+      let { value: parentModel } = await parentAsyncResult;
+
+      assert(parentModel.title === "title");
+      assert(parentModel.body === "body");
+
+      assert(parentModel.responseMsg === addDataMsg);
+
+      const responseUpdater = getResponseUpdater(parentModel.responseMsg);
+      responseUpdater(parentModel.responseMsg);
+
+      let { value: childModel } = await childAsyncResult;
+
+      assert(childModel.data[1] == "RI");
+      assert(childModel.changeCount == 1);
     });
   });
 });

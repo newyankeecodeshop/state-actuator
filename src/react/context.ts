@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext } from "react";
 
 import type { AnyMsg, Updater } from "../actuator";
+import { getResponseUpdater } from "../messages";
 
 /**
  * This context provides an updater to descendant stateful components
@@ -28,4 +29,12 @@ function useUpdater<Msg extends AnyMsg, A extends any[]>(
   return useCallback((...args: A) => updater(MsgConstructor(...args)), [updater]);
 }
 
-export { UpdaterContext, useUpdater };
+function useResponseUpdater(responseMsg?: AnyMsg): ((data?: object) => void) | undefined {
+  if (responseMsg == null) return undefined;
+
+  const updater = getResponseUpdater(responseMsg);
+
+  return useCallback((data?: object) => updater({ ...responseMsg, ...data }), [responseMsg]);
+}
+
+export { UpdaterContext, useUpdater, useResponseUpdater };

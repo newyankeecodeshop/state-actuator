@@ -58,6 +58,8 @@ function update(model, msg) {
         }
         return todo;
       });
+    default:
+      return undefined;
   }
 }
 
@@ -100,7 +102,7 @@ function TodoList({ model, updater }) {
       updater(AddTodo(newValue));
       setNewValue("");
     }
-  }, [newValue]);
+  });
 
   return (
     <React.Fragment>

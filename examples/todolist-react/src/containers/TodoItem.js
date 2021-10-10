@@ -21,6 +21,8 @@ function update(model, msg) {
   switch (msg.type) {
     case "SetEditing":
       return assignTo(model, ["editing", msg.value]);
+    default:
+      return undefined;
   }
 }
 
@@ -40,7 +42,7 @@ function TodoItem({ todo, model, updater }) {
     updater(SetLabel(todo, todo.label.trim()));
   }, [updater, todo]);
 
-  const onEnter = useOnEnter(finishedCallback, [todo]);
+  const onEnter = useOnEnter(finishedCallback);
   const ref = useRef();
   useOnClickOutside(ref, finishedCallback);
 

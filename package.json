@@ -1,6 +1,6 @@
 {
   "name": "state-actuator",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "A state management library that models state change as an iterable",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

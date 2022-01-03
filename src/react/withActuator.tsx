@@ -74,11 +74,6 @@ export function withActuator<Model, Msg extends AnyMsg, P extends IStateful<Mode
       this.stateIter.return?.();
     }
 
-    componentDidCatch(error: Error) {
-      // Tell the state generator a rendering error occurred
-      this.stateIter.throw?.(error);
-    }
-
     render() {
       const { updater } = this.stateActuator;
       const { outboundMsgHandler, ...props } = this.props;

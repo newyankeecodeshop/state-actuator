@@ -14,8 +14,9 @@ export type Updater<M extends AnyMsg> = (msg: M) => void;
 
 /**
  * An update function can return new state plus message(s) to send.
+ * If the state change is `undefined`, the message will be passed to the outbound message handler.
  */
-export type StateChange<Model, Msg extends AnyMsg> = Model | [Model, ...Promise<Msg>[]];
+export type StateChange<Model, Msg extends AnyMsg> = Model | [Model, ...Promise<Msg>[]] | undefined;
 
 type Subscription<Msg extends AnyMsg> = SubscriptionImpl<Msg>;
 
@@ -60,6 +61,13 @@ export interface ModelProvider<Model, Msg extends AnyMsg, Context> {
    */
   context?(): Context;
 }
+
+/**
+ * Use this constant in `update` functions to specify one or more messages should
+ * be handled as outbound messages. These messages will be passed to the actuator's
+ * `outboundMsgHandler` function.
+ */
+export const AS_OUTBOUND_MSG = undefined;
 
 /**
  * The core implementation

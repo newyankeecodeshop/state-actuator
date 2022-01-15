@@ -8,12 +8,10 @@ interface MsgWithResponse extends AnyMsg {
 }
 
 interface ResponseMsg extends AnyMsg {
-  // Reinstate w/ Upgrade to TS 4.4.0
-  //   [sym: symbol]: (msg: AnyMsg) => void;
+  [sym: symbol]: (msg: AnyMsg) => void;
 }
 
 export function getResponseUpdater(responseMsg: ResponseMsg): (msg: AnyMsg) => void {
-  // @ts-expect-error
   return responseMsg[responseUpdater];
 }
 

@@ -2,6 +2,7 @@ import { EventIterator } from "event-iterator";
 import { Queue } from "event-iterator/lib/event-iterator";
 import type { AnyMsg, ModelProvider, StateActuator, StateChange, Updater } from "./actuator.js";
 import { setResponseUpdater } from "./messages.js";
+import { createSender, SenderMsg } from "./sendReceive.js";
 import Subscription from "./subscription.js";
 
 const { isArray } = Array;
@@ -26,6 +27,8 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
 
   private currentSub?: Subscription<Msg>;
 
+  private senderFn?: Updater<SenderMsg>;
+
   constructor(stateful: ModelProvider<Model, Msg, C>) {
     const initialState = stateful.init(stateful.context?.()!);
 
@@ -37,6 +40,13 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
     });
     // Like with updates, the initial state may include async messages to send
     this.initialModel = processStateChange(initialState, this.updater);
+  }
+
+  get sender(): Updater<SenderMsg> {
+    if (this.senderFn == null) {
+      this.senderFn = createSender(this.updater as any);
+    }
+    return this.senderFn;
   }
 
   updater(_: Msg) {

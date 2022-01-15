@@ -2,6 +2,7 @@ import * as React from "react";
 import hoistNonReactStatics from "hoist-non-react-statics";
 
 import { AnyMsg, ModelProvider, StateActuator, Updater } from "../actuator.js";
+import { SenderMsg } from "../sendReceive.js";
 import { UpdaterContext } from "./context.js";
 
 /**
@@ -10,6 +11,7 @@ import { UpdaterContext } from "./context.js";
 interface IStateful<Model, Msg extends AnyMsg> {
   model: Model;
   updater: Updater<Msg>;
+  send?: Updater<SenderMsg>;
 }
 
 /**
@@ -73,12 +75,12 @@ export function withActuator<Model, Msg extends AnyMsg, P extends IStateful<Mode
     }
 
     render() {
-      const { updater } = this.stateActuator;
+      const { updater, sender } = this.stateActuator;
       const { outboundMsgHandler, ...props } = this.props;
 
       return (
         <UpdaterContext.Provider value={updater as Updater<AnyMsg>}>
-          <Component {...(props as P)} model={this.state.model} updater={updater} />
+          <Component {...(props as P)} model={this.state.model} send={sender} updater={updater} />
         </UpdaterContext.Provider>
       );
     }

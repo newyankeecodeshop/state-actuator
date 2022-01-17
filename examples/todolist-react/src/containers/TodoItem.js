@@ -12,10 +12,7 @@ function init() {
 
 // --- MESSAGES ----
 
-const DeleteTodo = (todo) => ({ type: "DeleteTodo", todo });
 const SetEditing = (value) => ({ type: "SetEditing", value });
-const SetLabel = (todo, label) => ({ type: "SetLabel", todo, label });
-const ToggleDone = (todo) => ({ type: "ToggleDone", todo });
 
 function update(model, msg) {
   switch (msg.type) {
@@ -26,21 +23,21 @@ function update(model, msg) {
   }
 }
 
-function TodoItem({ todo, model, updater }) {
+function TodoItem({ todo, model, send }) {
   const { editing } = model;
 
   // These will bubble up to the parent
-  const onDelete = () => updater(DeleteTodo(todo));
-  const onDone = () => updater(ToggleDone(todo));
-  const onChange = (event) => updater(SetLabel(todo, event.target.value));
+  const onDelete = () => send.DeleteTodo(todo);
+  const onDone = () => send.ToggleDone(todo);
+  const onChange = (event) => send.SetLabel(todo, event.target.value);
 
   const handleViewClick = useDoubleClick(null, () => {
-    updater(SetEditing(true));
+    send(SetEditing(true));
   });
   const finishedCallback = useCallback(() => {
-    updater(SetEditing(false));
-    updater(SetLabel(todo, todo.label.trim()));
-  }, [updater, todo]);
+    send(SetEditing(false));
+    send.SetLabel(todo, todo.label.trim());
+  }, [send, todo]);
 
   const onEnter = useOnEnter(finishedCallback);
   const ref = useRef();
@@ -69,6 +66,7 @@ function TodoItem({ todo, model, updater }) {
           value={todo.label}
           onChange={onChange}
           onKeyPress={onEnter}
+          autoFocus={true}
         />
       )}
     </li>

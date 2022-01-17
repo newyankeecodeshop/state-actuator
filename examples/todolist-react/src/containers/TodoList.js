@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import useRouter from "use-react-router";
-import { Subscription, assignTo } from "state-actuator";
+import { Subscription, assignTo, receive } from "state-actuator";
 import { withActuator } from "state-actuator/lib/react";
 
 import useInput from "../hooks/useInput";
@@ -13,42 +13,38 @@ function init() {
   return JSON.parse(localStorage.getItem("todos") || "[]");
 }
 
-const AddTodo = (label) => ({ type: "AddTodo", label });
-const ClearCompleted = () => ({ type: "ClearCompleted" });
-const ToggleAllDone = (filter) => ({ type: "ToggleAllDone", filter });
-
 function update(model, msg) {
-  switch (msg.type) {
-    case "AddTodo":
-      return model.concat(newTodo(msg.label));
-
-    case "DeleteTodo":
-      return model.filter((todo) => todo !== msg.todo);
-
-    case "ClearCompleted":
-      return model.filter((todo) => !todo.done);
-
-    case "SetLabel":
+  return receive(msg, {
+    AddTodo(label) {
+      return model.concat(newTodo(label));
+    },
+    DeleteTodo(target) {
+      return model.filter((todo) => todo !== target);
+    },
+    SetLabel(target, label) {
       return model.map((todo) => {
-        if (todo === msg.todo) {
-          return assignTo(todo, ["label", msg.label]);
+        if (todo === target) {
+          return assignTo(todo, ["label", label]);
         } else {
           return todo;
         }
       });
-
-    case "ToggleDone":
+    },
+    ClearCompleted() {
+      return model.filter((todo) => !todo.done);
+    },
+    ToggleDone(target) {
       return model.map((todo) => {
-        if (todo === msg.todo) {
+        if (todo === target) {
           return assignTo(todo, ["done", !todo.done]);
         } else {
           return todo;
         }
       });
-
-    case "ToggleAllDone":
-      const visibleTodos = msg.filter
-        ? model.filter(({ done }) => (msg.filter === "active" ? !done : done))
+    },
+    ToggleAllDone(filter) {
+      const visibleTodos = filter
+        ? model.filter(({ done }) => (filter === "active" ? !done : done))
         : model;
       const allSelected = visibleTodos.every((todo) => todo.done);
 
@@ -58,9 +54,8 @@ function update(model, msg) {
         }
         return todo;
       });
-    default:
-      return undefined;
-  }
+    },
+  });
 }
 
 function subscribe(model) {
@@ -70,7 +65,7 @@ function subscribe(model) {
   }, [model]);
 }
 
-function TodoList({ model, updater }) {
+function TodoList({ model, send }) {
   const router = useRouter();
 
   const todos = model;
@@ -89,17 +84,13 @@ function TodoList({ model, updater }) {
   const allSelected = useMemo(() => visibleTodos.every((i) => i.done), [visibleTodos]);
 
   const onToggleAll = useCallback(() => {
-    updater(ToggleAllDone(router.match.params.filter));
-  }, [updater, router.match.params]);
-
-  const onClearCompleted = useCallback(() => {
-    updater(ClearCompleted());
-  }, [updater]);
+    send.ToggleAllDone(router.match.params.filter);
+  }, [send, router.match.params]);
 
   const [newValue, onNewValueChange, setNewValue] = useInput();
   const onAddTodo = useOnEnter(() => {
     if (newValue) {
-      updater(AddTodo(newValue));
+      send.AddTodo(newValue);
       setNewValue("");
     }
   });
@@ -155,7 +146,7 @@ function TodoList({ model, updater }) {
           </li>
         </ul>
         {anyDone && (
-          <button className="clear-completed" onClick={onClearCompleted}>
+          <button className="clear-completed" onClick={send.ClearCompleted}>
             Clear completed
           </button>
         )}

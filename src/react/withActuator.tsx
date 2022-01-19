@@ -62,7 +62,7 @@ export function withActuator<Model, Msg extends AnyMsg, P extends IStateful<Mode
       this.stateActuator.outboundMsgHandler = this.props.outboundMsgHandler ?? this.context;
 
       // Start processing state changes
-      for await (const nextModel of this.stateActuator.stateIterator()) {
+      for await (const nextModel of this.stateActuator) {
         this.setState({ model: nextModel });
       }
     }

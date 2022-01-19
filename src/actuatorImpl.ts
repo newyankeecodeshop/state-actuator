@@ -47,7 +47,11 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
 
   stateIterator(): AsyncGenerator<Model> {
     // TODO: What happens if another generator is created?
-    // Should the creation of the iterator start a new process?
+    return this.processMessages(this.messageIter);
+  }
+
+  [Symbol.asyncIterator](): AsyncGenerator<Model> {
+    // TODO: make the generator a field so lifetime is controlled?
     return this.processMessages(this.messageIter);
   }
 

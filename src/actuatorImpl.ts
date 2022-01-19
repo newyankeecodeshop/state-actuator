@@ -1,4 +1,5 @@
 import { EventIterator } from "event-iterator";
+import { Queue } from "event-iterator/lib/event-iterator";
 import type { AnyMsg, ModelProvider, StateActuator, StateChange, Updater } from "./actuator";
 import { setResponseUpdater } from "./messages";
 import Subscription from "./subscription";
@@ -32,7 +33,7 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
     // The `updater` implementation will add messages to the iterator queue
     this.messageIter = new EventIterator<Msg>((queue) => {
       this.updater = (msg: Msg) => queue.push(msg);
-      return () => (this.updater = ActuatorImpl.prototype.updater);
+      this.close = () => this.closeMessageIterator(queue);
     });
     // Like with updates, the initial state may include async messages to send
     this.initialModel = processStateChange(initialState, this.updater);
@@ -41,6 +42,8 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
   updater(_: Msg) {
     console.warn("The iterator has been closed - messages are ignored");
   }
+
+  close() {}
 
   stateIterator(): AsyncGenerator<Model> {
     // TODO: What happens if another generator is created?
@@ -67,6 +70,8 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
         yield (model = nextModel);
       }
     }
+
+    this.removeSubscriber();
   }
 
   private processMessage(model: Model, msg: Msg): Model | undefined {
@@ -76,6 +81,16 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
     if (result !== undefined) {
       return processStateChange(result, this.updater);
     }
+  }
+
+  private closeMessageIterator(queue: Queue<Msg>) {
+    // If there is a pending promise, resolve it done
+    queue.stop();
+    // If there are messages already pushed, clear them out
+    this.messageIter[Symbol.asyncIterator]().return?.();
+    // Reset the listener methods to indicate a closed state
+    this.close = ActuatorImpl.prototype.close;
+    this.updater = ActuatorImpl.prototype.updater;
   }
 
   // ----- SUBSCRIPTIONS -----
@@ -88,9 +103,16 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
     const subscription = subscribe(model, context() as C);
 
     if (!this.currentSub?.equals(subscription)) {
-      this.currentSub?.remove();
+      this.removeSubscriber();
       this.currentSub = subscription;
       this.currentSub.invoke(this.updater);
+    }
+  }
+
+  private removeSubscriber() {
+    if (this.currentSub) {
+      this.currentSub.remove();
+      delete this.currentSub;
     }
   }
 }

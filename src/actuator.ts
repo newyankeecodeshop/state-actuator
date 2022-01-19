@@ -93,6 +93,12 @@ export interface StateActuator<Model, Msg extends AnyMsg> {
    * Multiple iterators can be created and work in parallel.
    */
   stateIterator(): AsyncIterableIterator<Model>;
+
+  /**
+   * Close down the actuator such that the iterator will become "done".
+   * Any pending messages are ignored and model updates stop.
+   */
+  close(): void;
 }
 
 /**

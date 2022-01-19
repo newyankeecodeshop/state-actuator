@@ -40,7 +40,6 @@ export function withActuator<Model, Msg extends AnyMsg, P extends IStateful<Mode
 
     declare context: React.ContextType<typeof UpdaterContext>;
 
-    private stateIter: AsyncIterableIterator<Model>;
     private stateActuator: StateActuator<Model, Msg>;
 
     constructor(props: P) {
@@ -54,7 +53,6 @@ export function withActuator<Model, Msg extends AnyMsg, P extends IStateful<Mode
 
       this.state = { model: stateActuator.initialModel };
 
-      this.stateIter = stateActuator.stateIterator();
       this.stateActuator = stateActuator;
     }
 
@@ -64,14 +62,14 @@ export function withActuator<Model, Msg extends AnyMsg, P extends IStateful<Mode
       this.stateActuator.outboundMsgHandler = this.props.outboundMsgHandler ?? this.context;
 
       // Start processing state changes
-      for await (const nextModel of this.stateIter) {
+      for await (const nextModel of this.stateActuator.stateIterator()) {
         this.setState({ model: nextModel });
       }
     }
 
     componentWillUnmount() {
-      // Need to tell state generator we're done
-      this.stateIter.return?.();
+      // Finish the `for of` loop in the componentDidMount method
+      this.stateActuator.close();
     }
 
     render() {

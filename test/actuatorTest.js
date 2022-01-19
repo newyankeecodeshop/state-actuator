@@ -120,10 +120,10 @@ describe("StateActuator", function () {
       actuator.updater({ type: "AddData", value: "New York" });
       actuator.updater({ type: "AddData", value: "Philadelphia" });
 
-      let newModel = await asyncResult;
+      let result = await asyncResult;
       assert(subscribe.callCount == 2);
 
-      newModel = await iterator.next();
+      result = await iterator.next();
       assert(subscribe.callCount == 3);
     });
 
@@ -149,14 +149,43 @@ describe("StateActuator", function () {
       actuator.updater({ type: "AddData", value: "Philadelphia" });
       actuator.updater({ type: "AddData", value: "Baltimore" });
 
-      let newModel = await asyncResult;
+      let result = await asyncResult;
       assert(subscribeRemove.callCount == 1);
 
-      newModel = await iterator.next();
+      result = await iterator.next();
       assert(subscribeRemove.callCount == 2);
 
-      newModel = await iterator.next();
+      result = await iterator.next();
       assert(subscribeRemove.callCount == 3);
+    });
+
+    it("calls the subscription cleanup function", async () => {
+      const subscribeRemove = sinon.fake();
+
+      function subscribe(_) {
+        return Subscription((_) => {
+          return subscribeRemove;
+        });
+      }
+
+      const actuator = StateActuator({ ...stateful, subscribe });
+      const iterator = actuator.stateIterator();
+
+      let asyncResult = iterator.next();
+
+      // Send some messages
+      actuator.updater({ type: "AddData", value: "New York" });
+      actuator.updater({ type: "AddData", value: "Philadelphia" });
+      actuator.updater({ type: "AddData", value: "Baltimore" });
+
+      let result = await asyncResult;
+      assert(subscribeRemove.callCount == 0);
+
+      actuator.close();
+
+      result = await iterator.next();
+      assert(result.done);
+      assert(subscribeRemove.callCount == 1);
     });
   });
 

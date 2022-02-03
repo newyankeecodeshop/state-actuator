@@ -1,4 +1,4 @@
-import type { AnyMsg } from "./actuator";
+import type { AnyMsg } from "./actuator.js";
 
 export const responseKey = Symbol("state-actuator.response");
 const responseUpdater = Symbol("state-actuator.updater");

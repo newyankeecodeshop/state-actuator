@@ -1,8 +1,8 @@
 import { EventIterator } from "event-iterator";
 import { Queue } from "event-iterator/lib/event-iterator";
-import type { AnyMsg, ModelProvider, StateActuator, StateChange, Updater } from "./actuator";
-import { setResponseUpdater } from "./messages";
-import Subscription from "./subscription";
+import type { AnyMsg, ModelProvider, StateActuator, StateChange, Updater } from "./actuator.js";
+import { setResponseUpdater } from "./messages.js";
+import Subscription from "./subscription.js";
 
 const { isArray } = Array;
 const { is } = Object;

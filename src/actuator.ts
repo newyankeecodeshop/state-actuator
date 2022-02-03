@@ -1,5 +1,5 @@
-import ActuatorImpl from "./actuatorImpl";
-import SubscriptionImpl from "./subscription";
+import ActuatorImpl from "./actuatorImpl.js";
+import SubscriptionImpl from "./subscription.js";
 
 /**
  * All messages require an identifier.

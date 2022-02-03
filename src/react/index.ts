@@ -1,2 +1,2 @@
-export * from "./context";
-export * from "./withActuator";
+export * from "./context.js";
+export * from "./withActuator.js";

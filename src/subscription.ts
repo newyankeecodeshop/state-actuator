@@ -1,4 +1,4 @@
-import type { AnyMsg, Subscriber } from "./actuator";
+import type { AnyMsg, Subscriber } from "./actuator.js";
 
 class Subscription<Msg extends AnyMsg> {
   readonly subs: Subscriber<Msg>;

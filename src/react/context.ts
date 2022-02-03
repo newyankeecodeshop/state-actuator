@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext } from "react";
 
-import type { AnyMsg, Updater } from "../actuator";
-import { getResponseUpdater } from "../messages";
+import type { AnyMsg, Updater } from "../actuator.js";
+import { getResponseUpdater } from "../messages.js";
 
 /**
  * This context provides an updater to descendant stateful components

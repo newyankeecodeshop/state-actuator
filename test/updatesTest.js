@@ -1,5 +1,5 @@
-const assert = require("assert");
-const { assignTo } = require("../lib/index");
+import assert from "assert/strict";
+import { assignTo } from "../lib/index.js";
 
 describe("updates", () => {
   describe("assignTo", () => {

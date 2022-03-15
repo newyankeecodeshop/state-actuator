@@ -1,6 +1,6 @@
-export * from "./actuator";
-export { responseKey, getResponseUpdater } from "./messages";
-export * from "./updates";
+export * from "./actuator.js";
+export { responseKey, getResponseUpdater } from "./messages.js";
+export * from "./updates.js";
 
 // Don't import stuff from the view-framework (e.g. "/react") folders here
 // because we don't want to force those dependencies to be installed.

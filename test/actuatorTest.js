@@ -1,6 +1,6 @@
-const assert = require("assert");
-const sinon = require("sinon");
-const { StateActuator, Subscription, responseKey, getResponseUpdater } = require("../lib/index");
+import assert from "assert/strict";
+import sinon from "sinon";
+import { StateActuator, Subscription, responseKey, getResponseUpdater } from "../lib/index.js";
 
 function delay(value) {
   return new Promise((resolve) => setTimeout(resolve, 10, value));

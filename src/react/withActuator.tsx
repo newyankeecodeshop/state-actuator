@@ -1,8 +1,8 @@
 import * as React from "react";
 import hoistNonReactStatics from "hoist-non-react-statics";
 
-import { AnyMsg, ModelProvider, StateActuator, Updater } from "../actuator";
-import { UpdaterContext } from "./context";
+import { AnyMsg, ModelProvider, StateActuator, Updater } from "../actuator.js";
+import { UpdaterContext } from "./context.js";
 
 /**
  * The basic contract for a stateful React Component

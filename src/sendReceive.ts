@@ -1,4 +1,4 @@
-import { AnyMsg, AS_OUTBOUND_MSG, StateChange, Updater } from "./actuator";
+import { AnyMsg, AS_OUTBOUND_MSG, StateChange, Updater } from "./actuator.js";
 
 export type SenderMsg = { readonly type: string; readonly data: any[] };
 

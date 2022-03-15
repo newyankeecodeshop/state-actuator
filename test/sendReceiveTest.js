@@ -1,7 +1,7 @@
-const assert = require("assert");
-const sinon = require("sinon");
+import assert from "assert/strict";
+import sinon from "sinon";
 
-const { createSender, receive } = require("../lib/sendReceive");
+import { createSender, receive } from "../lib/sendReceive.js";
 
 describe("sendReceive", () => {
   describe("createSender", () => {

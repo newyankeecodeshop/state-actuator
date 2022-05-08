@@ -28,7 +28,7 @@ describe("StateActuator", function () {
     },
   };
 
-  describe("Basic message processing", () => {
+  describe("Basic message processing", function () {
     it("calls the init function to setup initial state", () => {
       const actuator = StateActuator(stateful);
       assert(actuator.initialModel.data[0] === "init");
@@ -56,9 +56,38 @@ describe("StateActuator", function () {
         value: { data: ["Rhode Island"], changeCount: 3 },
       });
     });
+
+    it("supports multiple iterators used together", async function () {
+      const actuator = StateActuator(stateful);
+
+      actuator.updater({ type: "AddData", value: "New York" });
+      actuator.updater({ type: "ClearData" });
+      actuator.updater({ type: "AddData", value: "Rhode Island" });
+
+      const iterator1 = actuator.stateIterator();
+      const iterator2 = actuator.stateIterator();
+
+      let result1 = await iterator1.next();
+      let result2 = await iterator2.next();
+      assert.deepEqual(result1, result2);
+
+      result1 = await iterator1.next();
+      result2 = await iterator2.next();
+      assert.deepEqual(result1, result2);
+
+      result1 = await iterator1.next();
+      result2 = await iterator2.next();
+      assert.deepEqual(result1, result2);
+
+      actuator.close();
+
+      result1 = await iterator1.next();
+      result2 = await iterator2.next();
+      assert(result1.done && result2.done);
+    });
   });
 
-  describe("Async message processing", () => {
+  describe("Async message processing", function () {
     it("handles model and messages from the update function", async () => {
       const actuator = StateActuator(stateful);
       const iterator = actuator.stateIterator();
@@ -77,7 +106,7 @@ describe("StateActuator", function () {
     });
   });
 
-  describe("Using Context", () => {
+  describe("Using Context", function () {
     const actuator = StateActuator({
       context: () => 1000,
       init: (context) => ({ state: context }),
@@ -104,7 +133,7 @@ describe("StateActuator", function () {
     });
   });
 
-  describe("Subscription processing", () => {
+  describe("Subscription processing", function () {
     it("calls the subscription every time the model changes", async () => {
       // This subscribe function just tracks calls
       const subscribeFunc = sinon.fake();
@@ -113,18 +142,18 @@ describe("StateActuator", function () {
       const actuator = StateActuator({ ...stateful, subscribe });
       const iterator = actuator.stateIterator();
 
-      let asyncResult = iterator.next();
-      assert(subscribe.calledOnce);
-      assert(subscribeFunc.calledOnceWith(actuator.updater));
-
       actuator.updater({ type: "AddData", value: "New York" });
       actuator.updater({ type: "AddData", value: "Philadelphia" });
 
-      let result = await asyncResult;
+      let result = await iterator.next();
+      // Called twice, once with initial model, then with first AddData
       assert(subscribe.callCount == 2);
+      assert(subscribeFunc.calledWithExactly(actuator.updater));
 
       result = await iterator.next();
+      // Called a third time after second AddData message
       assert(subscribe.callCount == 3);
+      assert(subscribeFunc.calledWithExactly(actuator.updater));
     });
 
     it("uses keys to determine when to remove the subscription", async () => {
@@ -142,21 +171,19 @@ describe("StateActuator", function () {
       const actuator = StateActuator({ ...stateful, subscribe });
       const iterator = actuator.stateIterator();
 
-      let asyncResult = iterator.next();
-
       // Send some messages
       actuator.updater({ type: "AddData", value: "New York" });
       actuator.updater({ type: "AddData", value: "Philadelphia" });
       actuator.updater({ type: "AddData", value: "Baltimore" });
 
-      let result = await asyncResult;
-      assert(subscribeRemove.callCount == 1);
+      let result = await iterator.next();
+      assert.equal(subscribeRemove.callCount, 1);
 
       result = await iterator.next();
-      assert(subscribeRemove.callCount == 2);
+      assert.equal(subscribeRemove.callCount, 2);
 
       result = await iterator.next();
-      assert(subscribeRemove.callCount == 3);
+      assert.equal(subscribeRemove.callCount, 3);
     });
 
     it("calls the subscription cleanup function", async () => {
@@ -171,25 +198,25 @@ describe("StateActuator", function () {
       const actuator = StateActuator({ ...stateful, subscribe });
       const iterator = actuator.stateIterator();
 
-      let asyncResult = iterator.next();
-
       // Send some messages
       actuator.updater({ type: "AddData", value: "New York" });
       actuator.updater({ type: "AddData", value: "Philadelphia" });
       actuator.updater({ type: "AddData", value: "Baltimore" });
 
-      let result = await asyncResult;
-      assert(subscribeRemove.callCount == 0);
+      let result = await iterator.next();
+      assert.equal(subscribeRemove.callCount, 0);
 
       actuator.close();
 
       result = await iterator.next();
       assert(result.done);
-      assert(subscribeRemove.callCount == 1);
+      // Need to do one more async operation before subscription is removed
+      result = await iterator.next();
+      assert.equal(subscribeRemove.callCount, 1);
     });
   });
 
-  describe("message responses", () => {
+  describe("message responses", function () {
     const statefulParent = {
       init() {
         return { title: "", body: "", responseMsg: null };

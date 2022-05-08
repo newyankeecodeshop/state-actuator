@@ -89,12 +89,13 @@ export interface StateActuator<Model, Msg extends AnyMsg> {
   outboundMsgHandler?: Updater<AnyMsg>;
 
   /**
-   * Return the iterator over state changes.
+   * Return an iterator over state changes. Multiple iterators can be created to
+   * monitor state for different purposes.
    */
-  stateIterator(): AsyncIterableIterator<Model>;
+  stateIterator(): AsyncIterator<Model>;
 
   /**
-   * Return the iterator over state changes.
+   * Return an iterator over state changes, like `stateIterator()` above.
    * This allows actuators to be used with `for of` loops.
    */
   [Symbol.asyncIterator](): AsyncIterator<Model>;

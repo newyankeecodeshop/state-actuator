@@ -1,5 +1,5 @@
 import { EventIterator } from "event-iterator";
-import { Queue } from "event-iterator/lib/event-iterator";
+import type { Queue } from "event-iterator/lib/event-iterator";
 import type { AnyMsg, ModelProvider, StateActuator, StateChange, Updater } from "./actuator.js";
 import { setResponseUpdater } from "./messages.js";
 import Subscription from "./subscription.js";
@@ -21,8 +21,9 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
   public outboundMsgHandler?: Updater<AnyMsg>;
 
   private provider: ModelProvider<Model, Msg, C>;
-  // We need an Iterator<Msg> to implement Iterator<Model>
+
   private messageIter: EventIterator<Msg>;
+  private modelIters: Array<Queue<Model>>;
 
   private currentSub?: Subscription<Msg>;
 
@@ -35,6 +36,7 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
       this.updater = (msg: Msg) => queue.push(msg);
       this.close = () => this.closeMessageIterator(queue);
     });
+    this.modelIters = [];
     // Like with updates, the initial state may include async messages to send
     this.initialModel = processStateChange(initialState, this.updater);
   }
@@ -45,23 +47,37 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
 
   close() {}
 
-  stateIterator(): AsyncGenerator<Model> {
-    // TODO: What happens if another generator is created?
-    return this.processMessages(this.messageIter);
+  stateIterator(): AsyncIterator<Model> {
+    return this.newModelIterator()[Symbol.asyncIterator]();
   }
 
-  [Symbol.asyncIterator](): AsyncGenerator<Model> {
-    // TODO: make the generator a field so lifetime is controlled?
-    return this.processMessages(this.messageIter);
+  [Symbol.asyncIterator](): AsyncIterator<Model> {
+    return this.newModelIterator()[Symbol.asyncIterator]();
   }
 
-  private async *processMessages(messageIter: EventIterator<Msg>) {
+  private newModelIterator() {
+    const { modelIters } = this;
+
+    if (modelIters.length === 0) {
+      // First iterator -> start processing messages
+      setTimeout(this.processMessages.bind(this), 0);
+    }
+    return new EventIterator<Model>((queue) => {
+      // Need to add the queue to a list so that each time a message is recevied,
+      // we can process a new model and add it all queues.
+      let length = modelIters.push(queue);
+      // When the iterator is closed, remove the queue
+      return () => modelIters.splice(length - 1, 1);
+    });
+  }
+
+  private async processMessages() {
     // Each iterator instance maintains its own model state
     let model = this.initialModel;
 
     this.callSubscriber(model);
 
-    for await (const msg of messageIter) {
+    for await (const msg of this.messageIter) {
       const nextModel = this.processMessage(model, msg);
 
       if (nextModel === undefined) {
@@ -71,7 +87,9 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
         // Return new values only when the model is updated
         this.callSubscriber(nextModel);
 
-        yield (model = nextModel);
+        model = nextModel;
+        // broadcast the change to all model iterators
+        this.modelIters.forEach((queue) => queue.push(nextModel));
       }
     }
 
@@ -95,6 +113,8 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
     // Reset the listener methods to indicate a closed state
     this.close = ActuatorImpl.prototype.close;
     this.updater = ActuatorImpl.prototype.updater;
+    // Tell all the model iterators
+    this.modelIters.forEach((queue) => queue.stop());
   }
 
   // ----- SUBSCRIPTIONS -----

@@ -13,10 +13,19 @@ export type AnyMsg = { readonly type: string };
 export type Updater<M extends AnyMsg> = (msg: M) => void;
 
 /**
- * An update function can return new state plus message(s) to send.
+ * A state change means a new model and/or messages to send.
+ * If the new model is referrentially equal to the current model, state is unchanged.
+ */
+export type StateChange<Model, Msg extends AnyMsg> = Model | [Model, ...Msg[]];
+
+/**
+ * An update function can be both synchronous and asynchronous.
  * If the state change is `undefined`, the message will be passed to the outbound message handler.
  */
-export type StateChange<Model, Msg extends AnyMsg> = Model | [Model, ...Promise<Msg>[]] | undefined;
+export type StateUpdate<Model, Msg extends AnyMsg> =
+  | StateChange<Model, Msg>
+  | Promise<StateChange<Model, Msg>>
+  | undefined;
 
 type Subscription<Msg extends AnyMsg> = SubscriptionImpl<Msg>;
 
@@ -48,7 +57,7 @@ export interface ModelProvider<Model, Msg extends AnyMsg, Context> {
    * Can also return messages to be sent asynchronously, enabling
    * state changes based on network responses or other async activity.
    */
-  update(model: Model, msg: Msg, context: Context): StateChange<Model, Msg> | undefined;
+  update(model: Model, msg: Msg, context: Context): StateUpdate<Model, Msg>;
   /**
    * Provides a mechanism to generate messages based on an asynchronous API.
    * It's called on every model update.
@@ -122,7 +131,7 @@ export function StateActuator<Model, Msg extends AnyMsg, Context>(
  * Test a value to see if it implements the 'AnyMsg' structure.
  */
 export function isActuatorMsg(param: any): param is AnyMsg {
-  return typeof param === "object" && "type" in param;
+  return typeof param === "object" && typeof param?.type === "string";
 }
 
 /**

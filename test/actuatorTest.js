@@ -20,10 +20,7 @@ describe("StateActuator", function () {
           return { data: [], changeCount: model.changeCount + 1 };
 
         case "LoadData":
-          return [model, delay({ type: "LoadDataSuccess", data: ["a", "b", "c"] })];
-
-        case "LoadDataSuccess":
-          return { data: msg.data, changeCount: model.changeCount + 1 };
+          return delay({ data: ["a", "b", "c"], changeCount: model.changeCount + 1 });
       }
     },
   };

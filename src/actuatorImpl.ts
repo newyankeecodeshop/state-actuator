@@ -5,7 +5,7 @@ import { setResponseUpdater } from "./messages.js";
 import Subscription from "./subscription.js";
 
 const { isArray } = Array;
-const { is } = Object;
+const { is: isSame } = Object;
 
 const defaultContext: () => unknown = () => {};
 
@@ -83,25 +83,34 @@ class ActuatorImpl<Model, Msg extends AnyMsg, C> implements StateActuator<Model,
       if (nextModel === undefined) {
         // Need to pass on message to any parent actuator
         this.outboundMsgHandler?.(setResponseUpdater(msg, this.updater));
-      } else if (!is(nextModel, model)) {
-        // Return new values only when the model is updated
-        this.callSubscriber(nextModel);
-
-        model = nextModel;
-        // broadcast the change to all model iterators
-        this.modelIters.forEach((queue) => queue.push(nextModel));
+        continue;
       }
+
+      nextModel.then((nextModel) => {
+        if (!isSame(nextModel, model)) {
+          // Return new values only when the model is updated
+          this.callSubscriber(nextModel);
+
+          model = nextModel;
+          // broadcast the change to all model iterators
+          this.modelIters.forEach((queue) => queue.push(nextModel));
+        }
+      });
     }
 
     this.removeSubscriber();
   }
 
-  private processMessage(model: Model, msg: Msg): Model | undefined {
+  private processMessage(model: Model, msg: Msg) {
     const provider = this.provider;
     let result = provider.update(model, msg, provider.context?.()!);
-    // Unhandled messages will be given to next actuator
-    if (result !== undefined) {
-      return processStateChange(result, this.updater);
+
+    if (isThenable(result)) {
+      // State change is async, return the current state
+      return result.then((state) => processStateChange(state, this.updater));
+    } else if (result !== undefined) {
+      // Unhandled messages will be given to next actuator
+      return Promise.resolve(processStateChange(result, this.updater));
     }
   }
 
@@ -145,14 +154,22 @@ function processStateChange<Model, Msg extends AnyMsg>(
   result: StateChange<Model, Msg>,
   updater: Updater<Msg>
 ): Model {
-  // A tuple that contains a promise should not be treated as a Model.
-  // A model that is an array is very certain never to be an array of promises.
-  if (isArray(result) && result[1] instanceof Promise) {
-    const [model, ...promises] = result;
-    promises.forEach((p) => p.then(updater));
-    return model;
+  // A tuple that contains a message should not be treated as a Model.
+  // A model that is an array hopefully doesn't have an array of messages.
+  if (isArray(result) && isActuatorMsg(result[1])) {
+    const model = result.shift();
+    (result as Msg[]).forEach(updater);
+    return model as Model;
   }
   return result as Model;
+}
+
+function isActuatorMsg(param: any): param is AnyMsg {
+  return typeof param === "object" && typeof param?.type === "string";
+}
+
+function isThenable<T>(param: any): param is Promise<T> {
+  return typeof param === "object" && typeof param?.then === "function";
 }
 
 export default ActuatorImpl;

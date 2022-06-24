@@ -2,6 +2,30 @@ import { assignTo, Subscription } from "state-actuator";
 
 const STORAGE_KEY = "vue-todomvc";
 
+// MESSAGES
+
+const AddTodo = (title) => ({ type: "AddTodo", title });
+const RemoveTodo = (todo) => ({ type: "RemoveTodo", todo });
+const EditTodo = (todo) => ({ type: "EditTodo", todo });
+const CancelEdit = (todo) => ({ type: "CancelEdit", todo });
+const DoneEdit = (todo, title) => ({ type: "DoneEdit", todo, title });
+const RemoveCompleted = () => ({ type: "RemoveCompleted" });
+const ToggleAll = (completed) => ({ type: "ToggleAll", completed });
+const ToggleDone = (todo) => ({ type: "ToggleDone", todo });
+
+export const Msg = {
+  AddTodo,
+  RemoveTodo,
+  EditTodo,
+  CancelEdit,
+  DoneEdit,
+  RemoveCompleted,
+  ToggleAll,
+  ToggleDone,
+};
+
+// STATE
+
 export function init() {
   // Same as what would be in the data() function
   return {
@@ -75,8 +99,10 @@ function updateTodos(todos, msg) {
 export function subscribe(model) {
   return Subscription(
     (updater) => {
+      // Save the todos to DOM storage
       localStorage.setItem(STORAGE_KEY, JSON.stringify(model.todos));
 
+      // Monitor the browser URL fragment for changes to the filter
       const onHashChange = () => {
         var visibility = window.location.hash.replace(/#\/?/, "");
         updater({ type: "ChangeFilter", filter: visibility });
@@ -86,6 +112,6 @@ export function subscribe(model) {
         window.removeEventListener("hashchange", onHashChange);
       };
     },
-    [model.todos]
+    [model.todos] // Update subscription when `todos` change
   );
 }

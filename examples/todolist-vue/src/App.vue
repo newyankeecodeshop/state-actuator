@@ -5,10 +5,8 @@ https://todomvc.com/
 
 <script>
 import { StateActuator } from "state-actuator";
-import { init, update, subscribe } from "./state.js";
-
-// TODO: this should be a member of `this` via a plugin
-const actuator = StateActuator({ init, update, subscribe });
+import { messagesToMethods } from "state-actuator/vue";
+import { Msg, init, update, subscribe } from "./state.js";
 
 const filters = {
   all: (todos) => todos,
@@ -17,25 +15,20 @@ const filters = {
 };
 
 export default {
-  // app initial state
-  data: () => actuator.initialModel,
-
-  async mounted() {
-    // Here we can start the iteration for new models
-    // When we get the next model, we can update the "this" data properties
-    for await (const nextModel of actuator) {
-      this.todos = nextModel.todos;
-      this.editedTodo = nextModel.editedTodo;
-      this.visibility = nextModel.visibility;
-    }
+  // The VueActuator plugin requires the instance to have an actuator object.
+  beforeCreate() {
+    this.$actuator = StateActuator({ init, update, subscribe });
   },
 
   computed: {
+    todoCount() {
+      return this.model.todos.length;
+    },
     filteredTodos() {
-      return filters[this.visibility](this.todos);
+      return filters[this.model.visibility](this.model.todos);
     },
     remaining() {
-      return filters.active(this.todos).length;
+      return filters.active(this.model.todos).length;
     },
   },
 
@@ -47,37 +40,25 @@ export default {
   argument: ["addTodo", (e) => e.target.value]
   */
   methods: {
-    toggleAll(e) {
-      actuator.updater({ type: "ToggleAll", completed: e.target.checked });
-    },
+    ...messagesToMethods([
+      Msg.EditTodo,
+      Msg.RemoveTodo,
+      Msg.CancelEdit,
+      Msg.RemoveCompleted,
+      Msg.ToggleDone,
+    ]),
 
-    toggleDone(todo) {
-      actuator.updater({ type: "ToggleDone", todo });
+    toggleAll(e) {
+      this.$actuator.updater(Msg.ToggleAll(e.target.checked));
     },
 
     addTodo(e) {
-      actuator.updater({ type: "AddTodo", title: e.target.value });
+      this.$actuator.updater(Msg.AddTodo(e.target.value));
       e.target.value = "";
     },
 
-    removeTodo(todo) {
-      actuator.updater({ type: "RemoveTodo", todo });
-    },
-
-    editTodo(todo) {
-      actuator.updater({ type: "EditTodo", todo });
-    },
-
     doneEdit(todo, e) {
-      actuator.updater({ type: "DoneEdit", todo, title: e.target.value });
-    },
-
-    cancelEdit(todo) {
-      actuator.updater({ type: "CancelEdit", todo });
-    },
-
-    removeCompleted() {
-      actuator.updater({ type: "RemoveCompleted" });
+      this.$actuator.updater(Msg.DoneEdit(todo, e.target.value));
     },
   },
 };
@@ -94,7 +75,7 @@ export default {
         @keyup.enter="addTodo"
       />
     </header>
-    <section class="main" v-show="todos.length">
+    <section class="main" v-show="todoCount">
       <input
         id="toggle-all"
         class="toggle-all"
@@ -108,7 +89,7 @@ export default {
           v-for="todo in filteredTodos"
           class="todo"
           :key="todo.id"
-          :class="{ completed: todo.completed, editing: todo === editedTodo }"
+          :class="{ completed: todo.completed, editing: todo === model.editedTodo }"
         >
           <div class="view">
             <input
@@ -121,7 +102,7 @@ export default {
             <button class="destroy" @click="removeTodo(todo)"></button>
           </div>
           <input
-            v-if="todo === editedTodo"
+            v-if="todo === model.editedTodo"
             class="edit"
             type="text"
             @vnode-mounted="({ el }) => el.focus()"
@@ -132,23 +113,25 @@ export default {
         </li>
       </ul>
     </section>
-    <footer class="footer" v-show="todos.length">
+    <footer class="footer" v-show="todoCount">
       <span class="todo-count">
         <strong>{{ remaining }}</strong>
         <span>{{ remaining === 1 ? " item" : "  items" }} left</span>
       </span>
       <ul class="filters">
         <li>
-          <a href="#/all" :class="{ selected: visibility === 'all' }">All</a>
+          <a href="#/all" :class="{ selected: model.visibility === 'all' }">All</a>
         </li>
         <li>
-          <a href="#/active" :class="{ selected: visibility === 'active' }">Active</a>
+          <a href="#/active" :class="{ selected: model.visibility === 'active' }">Active</a>
         </li>
         <li>
-          <a href="#/completed" :class="{ selected: visibility === 'completed' }">Completed</a>
+          <a href="#/completed" :class="{ selected: model.visibility === 'completed' }"
+            >Completed</a
+          >
         </li>
       </ul>
-      <button class="clear-completed" @click="removeCompleted" v-show="todos.length > remaining">
+      <button class="clear-completed" @click="removeCompleted" v-show="todoCount > remaining">
         Clear completed
       </button>
     </footer>
